@@ -9,6 +9,8 @@ import errno
 import dibco_measure
 import f_measure
 import argparse
+import csv
+import constants
 
 def get_image_files(path):
     extensions = ('*.png', '*.tiff')
@@ -39,7 +41,12 @@ class FolderMeasure:
         if (not os.path.exists(self.path_dibco_bin)):
             print('The DIBCO binary path is wrong. This path must contain a file named: DIBCO_metrics.exe')
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), self.path_dibco_bin)
-    
+            
+        self.mean_fm = -1
+        self.mean_precision = -1
+        self.mean_recall = -1
+
+
     def batch_measure(self):
 
         TYPE_GT = 0
@@ -80,18 +87,18 @@ class FolderMeasure:
         else:
             fm = f_measure.PerformanceMeasure(self.path_img, self.path_gt)
 
-        for img_name in tqdm.tqdm(img_names):
+        for img_name in img_names:
             if (self.use_dibco_tool):
                 result = dw.calc(img_name, get_gt_file(TYPE_GT), get_gt_file(TYPE_PSEUDO_RECALL), get_gt_file(TYPE_PSEUDO_PRECISION))
             else:
                 result = fm.calc(img_name, get_gt_file(TYPE_GT))
             
             results.append(result)
-            [r.fm for r in results]
-            b = 0
 
-        fm = [r.fm for r in results]
-        print('Mean fm: %f', np.mean(fm))
+        # Store the mean performance values:
+        self.mean_fm = np.mean([r.fm for r in results])
+        self.mean_recall = np.mean([r.recall for r in results])
+        self.mean_precision = np.mean([r.precision for r in results])
 
 class ImgConverter:
 
@@ -136,7 +143,6 @@ class GTConverter:
 
         print('Calculating dibco weights...')
         for f in tqdm.tqdm(files):
-            # print('converting file: ' + os.path.basename(f))
             file_out_name = convert_img(f, self.path_out)
             save_weights()
             
@@ -145,15 +151,32 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("path_gt", help="path to the ground truth images")
     parser.add_argument("path_img", help="path to the result images")
-    parser.add_argument("-dt", "--dibco_tool", help="use dibco tool",
-                        action="store_true")
-    # parser.add_argument('--path_dibco_bin', action='store_const', const='sd')
-    parser.add_argument('--path_dibco_bin', nargs='?', const='')
+    parser.add_argument("path_csv", help="path to the csv output file")
+    parser.add_argument("-dt", "--dibco_tool", help="use dibco tool", action="store_true")
+    parser.add_argument('--path_dibco_bin', nargs='?', const='', default='')
+    parser.add_argument("-s", "--subfolders", help="evaluate subfolders", action="store_true")
     args = parser.parse_args()
 
-    path_binary = "C:\\cvl\\msi\\code\\eval\\dibco\\dibco_metrics\\DIBCO_metrics.exe"
-    measure = FolderMeasure(args.path_img, args.path_gt, args.dibco_tool, args.path_dibco_bin)
-    measure.batch_measure()
+    measures = []
+    if args.subfolders:
+        folders = glob.glob(os.path.join(args.path_img, '*\\'))
+    else:
+        folders = [args.path_img]
+
+    for folder in tqdm.tqdm(folders):
+        measure = FolderMeasure(folder, args.path_gt, args.dibco_tool, args.path_dibco_bin)
+        measure.batch_measure()    
+        measures.append(measure)
+
+    with open(args.path_csv, 'w', newline='') as csvfile:
+        headers = [constants.HEADER_PATH_IMG, constants.HEADER_MEAN_FM, constants.HEADER_MEAN_PRECISION, constants.HEADER_MEAN_RECALL]
+        writer = csv.DictWriter(csvfile, fieldnames=headers)
+        writer.writeheader()
+        for measure in measures:
+            writer.writerow({   constants.HEADER_PATH_IMG: measure.path_img, 
+                                constants.HEADER_MEAN_PRECISION: measure.mean_precision,
+                                constants.HEADER_MEAN_RECALL: measure.mean_recall,
+                                constants.HEADER_MEAN_FM: measure.mean_fm})
 
 if __name__ == "__main__":
     main()     
