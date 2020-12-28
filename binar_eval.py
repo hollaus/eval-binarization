@@ -47,7 +47,7 @@ class FolderMeasure:
         self.mean_recall = -1
 
 
-    def batch_measure(self):
+    def batch_measure(self, fg_type: constants.FGType = constants.FGType.REGULAR):
 
         TYPE_GT = 0
         TYPE_PSEUDO_RECALL = 1
@@ -79,6 +79,9 @@ class FolderMeasure:
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
 
         img_names = get_image_files(self.path_img)
+        if not img_names:
+            raise Exception('No image found.')
+        
         img_name = ''
         results = []
 
@@ -91,7 +94,7 @@ class FolderMeasure:
             if (self.use_dibco_tool):
                 result = dw.calc(img_name, get_gt_file(TYPE_GT), get_gt_file(TYPE_PSEUDO_RECALL), get_gt_file(TYPE_PSEUDO_PRECISION))
             else:
-                result = fm.calc(img_name, get_gt_file(TYPE_GT))
+                result = fm.calc(img_name, get_gt_file(TYPE_GT), fg_type)
             
             results.append(result)
 
@@ -154,6 +157,7 @@ def main():
     parser.add_argument("path_csv", help="path to the csv output file")
     parser.add_argument("-dt", "--dibco_tool", help="use dibco tool", action="store_true")
     parser.add_argument('--path_dibco_bin', nargs='?', const='', default='')
+    parser.add_argument('--fg_type', nargs='?', const=0, default=0, type=int)
     parser.add_argument("-s", "--subfolders", help="evaluate subfolders", action="store_true")
     args = parser.parse_args()
 
@@ -165,7 +169,7 @@ def main():
 
     for folder in tqdm.tqdm(folders):
         measure = FolderMeasure(folder, args.path_gt, args.dibco_tool, args.path_dibco_bin)
-        measure.batch_measure()    
+        measure.batch_measure(constants.map_fg_type(args.fg_type))    
         measures.append(measure)
 
     with open(args.path_csv, 'w', newline='') as csvfile:
