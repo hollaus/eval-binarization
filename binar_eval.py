@@ -1,3 +1,9 @@
+"""Evaluate the performance of document image binarization methods.
+
+Measures the performance on a folder basis, given an input and a ground truth folder.
+The performance measure is saved in the form of CSV file.
+"""  
+
 import subprocess
 import re
 import os
@@ -81,7 +87,7 @@ class FolderMeasure:
         img_names = get_image_files(self.path_img)
         if not img_names:
             raise Exception('No image found.')
-        
+
         img_name = ''
         results = []
 
