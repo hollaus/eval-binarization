@@ -17,7 +17,7 @@ class PerformanceResult:
             img = np.where(np.logical_and(gt[:,:,2] == 0, gt[:,:,0] == 255), 0, img)
             img = (255 - img) > 0
             img = img > 0
-            gt = gt[:,:,1] > 0
+            gt = gt[:,:,1] == 255
             # gt = np.where(gt == 255, 1, 0)
         elif fg_type == constants.FGType.MSBIN_FG_2:
             raise Exception('The foreground type is not supported!')
@@ -65,10 +65,10 @@ class PerformanceMeasure:
         return r
 
 if __name__ == "__main__":
-    img_path = 'C:\\cvl\\msi\\data\\msbin\\results\\ace\\test\\suw_101_100_ace_0,5_0,1\\'
-    img_name = 'EA0.png'
-    gt_path = 'C:\\cvl\\msi\\data\\msbin\\MSBin\\test\\labels\\'
-    gt_name = 'EA0.png'
+    img_path = 'D:\\msi\\ace_v1\\stages_eval\\msbin\\stage_1\\'
+    img_name = 'BT3.png'
+    gt_path = 'C:\\cvl\\msi\\data\\msbin\\MSBin\\train\\labels\\'
+    gt_name = 'BT3.png'
     pm = PerformanceMeasure(img_path, gt_path)
     pm.calc(img_name, gt_name, constants.FGType.MSBIN_FG_1)  
 

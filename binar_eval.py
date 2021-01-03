@@ -37,11 +37,12 @@ def convert_img(path_in, path_out):
 
 class FolderMeasure:
 
-    def __init__(self, path_img, path_gt, use_dibco_tool = False, path_dibco_bin = ''):
+    def __init__(self, path_img, path_gt, use_dibco_tool = False, path_dibco_bin = '', save_single_results = False):
         self.path_img = path_img
         self.path_gt = path_gt
         self.use_dibco_tool = use_dibco_tool
         self.path_dibco_bin = os.path.join(path_dibco_bin, 'DIBCO_metrics.exe')
+        self.save_single_results = save_single_results
 
         # Assure that the binary file is existing:
         if (not os.path.exists(self.path_dibco_bin)):
@@ -109,6 +110,10 @@ class FolderMeasure:
         self.mean_recall = np.mean([r.recall for r in results])
         self.mean_precision = np.mean([r.precision for r in results])
 
+        if self.save_single_results:
+            self.fm = [r.fm for r in results]
+            self.img_names = img_names
+
 class ImgConverter:
 
     def __init__(self, path_in, path_out, path_gt=''):
@@ -163,8 +168,9 @@ def main():
     parser.add_argument("path_csv", help="path to the csv output file")
     parser.add_argument("-dt", "--dibco_tool", help="use dibco tool", action="store_true")
     parser.add_argument('--path_dibco_bin', nargs='?', const='', default='')
-    parser.add_argument('--fg_type', nargs='?', const=0, default=0, type=int)
+    parser.add_argument('-fg_type', nargs='?', const=0, default=0, type=int)
     parser.add_argument("-s", "--subfolders", help="evaluate subfolders", action="store_true")
+    parser.add_argument("-f", "--file_results", help="save F-Measure for each file", action="store_true")
     args = parser.parse_args()
 
     measures = []
@@ -174,9 +180,13 @@ def main():
         folders = [args.path_img]
 
     for folder in tqdm.tqdm(folders):
-        measure = FolderMeasure(folder, args.path_gt, args.dibco_tool, args.path_dibco_bin)
+        measure = FolderMeasure(folder, args.path_gt, args.dibco_tool, args.path_dibco_bin, args.file_results)
         measure.batch_measure(constants.map_fg_type(args.fg_type))    
         measures.append(measure)
+        # This is a safety message to see if we got many wrong results...
+        # print(folder)
+        # tqdm.tqdm.write("Current FM: %f" % measure.mean_fm)
+        
 
     with open(args.path_csv, 'w', newline='') as csvfile:
         headers = [constants.HEADER_PATH_IMG, constants.HEADER_MEAN_FM, constants.HEADER_MEAN_PRECISION, constants.HEADER_MEAN_RECALL]
@@ -187,6 +197,12 @@ def main():
                                 constants.HEADER_MEAN_PRECISION: measure.mean_precision,
                                 constants.HEADER_MEAN_RECALL: measure.mean_recall,
                                 constants.HEADER_MEAN_FM: measure.mean_fm})
+            if args.file_results:
+                for (img_name, fm) in zip(measure.img_names, measure.fm):
+                    writer.writerow({   constants.HEADER_PATH_IMG: img_name, 
+                                         constants.HEADER_MEAN_FM: fm
+
+                    })
 
 if __name__ == "__main__":
     main()     
