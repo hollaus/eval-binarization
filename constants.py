@@ -22,8 +22,16 @@ class FGType(Enum):
     MSBIN_FG_1 = 1
     # This is the second foreground class in MSBin:
     MSBIN_FG_2 = 2
+    # This is the foreground class in MSTEx colored green
+    MSTEX_FG_GREEN = 3
 
 HEADER_PATH_IMG = 'path_img'
-HEADER_MEAN_PRECISION = 'mean_precision'
-HEADER_MEAN_FM = 'mean_fm'
-HEADER_MEAN_RECALL = 'mean_recall'
+HEADER_PRECISION = 'precision'
+HEADER_FM = 'fm'
+HEADER_RECALL = 'recall'
+HEADER_DRD = 'drd'
+HEADER_PSEUDO_FM = 'pseudo_fm'
+HEADER_PSEUDO_RECALL = 'pseudo_recall'
+HEADER_PSEUDO_PRECISION = 'pseudo_precision'
+HEADER_PSNR = 'psnr'
+HEADER_NRM = 'nrm'
